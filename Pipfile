@@ -8,6 +8,8 @@ verify_ssl = true
 [packages]
 flask = "*"
 flask-script = "*"
+flask-bootstrap = "*"
+flask-moment = "*"
 
 [requires]
 python_version = "3.8"
