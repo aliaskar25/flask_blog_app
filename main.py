@@ -12,7 +12,7 @@ from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate, MigrateCommand
 
-from flask_wtf import Form
+from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired
 
@@ -51,7 +51,7 @@ class Role(db.Model):
     name = db.Column(db.String(32), unique=True)
     users = db.relationship("User", backref="role", lazy="dynamic")
     
-    def __str__(self):
+    def __repr__(self):
         return f"<Role {self.name}>"
 
 
@@ -59,14 +59,14 @@ class User(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, index=True)
-    role_id = db.Column(db.Integer, db.ForeignKey("roles.id"))
+    role_id = db.Column(db.Integer, db.ForeignKey("roles.id"), nullable=True)
 
-    def __str__(self):
+    def __repr__(self):
         return f"<User {self.username}>"
 
 ########## Forms ############
 
-class NameForm(Form):
+class NameForm(FlaskForm):
     name = StringField("What is your name", validators=[DataRequired()])
     submit = SubmitField("Submit")
 
@@ -80,7 +80,8 @@ def index():
         if user:
             session["known"] = True
         else:
-            db.session.add(User(username=user))
+            db.session.add(User(username=form.name.data))
+            db.session.commit()
             session["known"] = False
         session["name"], form.name.data = form.name.data, ""
         return redirect(url_for("index"))
