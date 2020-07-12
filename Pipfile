@@ -10,6 +10,7 @@ flask = "*"
 flask-script = "*"
 flask-bootstrap = "*"
 flask-moment = "*"
+flask-wtf = "*"
 
 [requires]
 python_version = "3.8"
