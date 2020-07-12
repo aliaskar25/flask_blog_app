@@ -11,6 +11,13 @@
             Stranger
         {% endif %}!
     </h1>
+    <p>
+        {% if known %}
+            Nice to see you again bro!
+        {% else %}
+            Nice to meet you!
+        {% endif %}
+    </p>
 </div>
 <p>Date and time: {{ moment(current_time).format("LLL") }}</p>
 <p>That was {{ moment(current_time).fromNow(refresh=True) }}</p>
