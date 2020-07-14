@@ -11,6 +11,7 @@ from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate, MigrateCommand
+from flask_mail import Mail, Message
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
@@ -18,6 +19,7 @@ from wtforms.validators import DataRequired
 
 from datetime import datetime
 import os
+from threading import Thread
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -29,6 +31,15 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(basedir, "da
 app.config["SQLALCHEMY_COMMIT_ON_TEARDOWN"] = True
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+app.config["MAIL_SERVER"] = "smtp.googlemail.com"
+app.config["MAIL_PORT"] = 587
+app.config["MAIL_USE_TLS"] = True
+app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
+app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
+app.config["MAIL_SUBJECT"] = "eeee BOOY"
+app.config["MAIL_SENDER"] = "prosto@chel.com"
+app.config["ADMIN_MAIL"] = "aliaskar.isakov@yandex.ru"
+
 ###### Init side apps #######
 
 manager = Manager(app)
@@ -36,6 +47,7 @@ bootstrap = Bootstrap(app)
 moment = Moment(app)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+mail = Mail(app)
 
 def make_shell_context():
     return dict(app=app, db=db, User=User, Role=Role)
@@ -70,6 +82,24 @@ class NameForm(FlaskForm):
     name = StringField("What is your name", validators=[DataRequired()])
     submit = SubmitField("Submit")
 
+########### Utils ###########
+
+def send_async_email(app, msg):
+    with app.app_context():
+        mail.send(msg)
+
+
+def send_mail(to, template, **kwargs):
+    msg = Message(app.config["MAIL_SUBJECT"], 
+                  sender=app.config["MAIL_SENDER"],
+                  recipients=[to])
+    msg.body = render_template(template + ".txt", **kwargs)
+    msg.html = render_template(template + ".html", **kwargs)
+    thr = Thread(target=send_async_email, args=[app, msg])
+    thr.start()
+    return thr
+    
+
 ########## Routes ###########
 
 @app.route("/", methods=["GET", "POST"])
@@ -80,9 +110,12 @@ def index():
         if user:
             session["known"] = True
         else:
-            db.session.add(User(username=form.name.data))
+            user = User(username=form.name.data)
+            db.session.add(user)
             db.session.commit()
             session["known"] = False
+            if app.config["ADMIN_MAIL"]:
+                send_mail(app.config["ADMIN_MAIL"], "mail/new_user", user=user)
         session["name"], form.name.data = form.name.data, ""
         return redirect(url_for("index"))
     return render_template("index.html", form=form, 
