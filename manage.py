@@ -17,5 +17,16 @@ manager.add_command("shell", Shell(make_context=make_shell_context))
 manager.add_command("db", MigrateCommand)
 
 
+@manager.command
+def test(test_name=None):
+    """Starting test..."""
+    import unittest
+    if test_name is None:
+        tests = unittest.TestLoader().discover('tests')
+    else:
+        tests = unittest.TestLoader().loadTestsFromName('tests.' + test_name)
+    unittest.TextTestRunner(verbosity=2).run(tests)
+
+
 if __name__ == "__main__":
     manager.run()
