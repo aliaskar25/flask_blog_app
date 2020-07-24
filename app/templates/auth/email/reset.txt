@@ -1,0 +1,7 @@
+Dear {{ user.username }},
+
+Welcome Melcome!
+
+to change your password click here:
+
+{{ url_for("auth.password_reset", token=token, _external=True) }}

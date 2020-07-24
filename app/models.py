@@ -30,6 +30,11 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(69), unique=True, index=True)
     confirmed = db.Column(db.Boolean, default=False)
 
+    def __repr__(self):
+        return f"<User {self.username}>"
+
+    ############## Confirmation account #############
+
     def generate_confirmation_token(self, expiration=3600):
         s = Serializer(current_app.config["SECRET_KEY"], expiration)
         return s.dumps({"confirm": self.id})
@@ -45,6 +50,8 @@ class User(UserMixin, db.Model):
         self.confirmed = True
         db.session.add(self)
         return True
+    
+    ############# Set password #############
 
     @property
     def password(self):
@@ -57,5 +64,42 @@ class User(UserMixin, db.Model):
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    def __repr__(self):
-        return f"<User {self.username}>"
+    ######### Reset password #########
+
+    def generate_reset_password_token(self, expiration=3600):
+        s = Serializer(current_app.config["SECRET_KEY"], expiration)
+        return s.dumps({"reset": self.id})
+
+    @classmethod
+    def reset_password(cls, token, new_password):
+        s = Serializer(current_app.config["SECRET_KEY"])
+        try:
+            data = s.loads(token)
+        except:
+            return False
+        user = cls.query.filter_by(id=data.get("reset")).first()
+        if user:
+            user.password = new_password
+            db.session.add(user)
+            return True
+        return False
+
+    ######## Change email #########
+
+    def generate_email_change_token(self, new_email, expiration=3600):
+        s = Serializer(current_app.config["SECRET_KEY"], expiration)
+        return s.dumps({"change_email": self.id, "new_email": new_email}).decode('utf-8')
+
+    def change_email(self, token):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        print("-"*70)
+        try:
+            data = s.loads(token)
+        except:
+            return False
+        if data.get("change_email") != self.id:
+            return False
+        new_email = data.get("new_email")
+        self.email = new_email
+        db.session.add(self)
+        return True

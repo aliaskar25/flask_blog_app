@@ -1,0 +1,7 @@
+<h2>Dear {{ user.username }},</h2>
+
+<h1>Welcome Melcome!</h1>
+
+<p>to change your password click here:</p>
+
+<p>{{ url_for("auth.password_reset", token=token, _external=True) }}</p>

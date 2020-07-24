@@ -1,0 +1,7 @@
+Dear {{ user.username }},
+
+Welcome Melcome!
+
+to confirm your new email click here:
+
+{{ url_for("auth.change_email", token=token, _external=True) }}
