@@ -9,7 +9,7 @@ class Config:
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     MAIL_SENDER = os.getenv("MAIL_USERNAME")
-    ADMIN_MAIL = "aliaskar.isakov@yandex.ru"
+    ADMIN_MAIL = "aliaskar.isakov@gmail.com"
     DEBUG = True
     MAIL_SERVER = "smtp.googlemail.com"
     MAIL_PORT = 587
