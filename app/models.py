@@ -1,9 +1,13 @@
-from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import UserMixin, AnonymousUserMixin
-from . import login_manager
-from flask import current_app
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+
+from flask_login import UserMixin, AnonymousUserMixin
+from flask import current_app
+
+from . import login_manager
+from . import db
+
+from datetime import datetime
 
 
 @login_manager.user_loader
@@ -60,17 +64,29 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(228))
     email = db.Column(db.String(69), unique=True, index=True)
     confirmed = db.Column(db.Boolean, default=False)
+    name = db.Column(db.String(128), index=True)
+    location = db.Column(db.String(64), index=True)
+    about_me = db.Column(db.Text())
+    member_since = db.Column(db.DateTime(), default=datetime.utcnow)
+    last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
         if self.role is None:
             if self.email == current_app.config['ADMIN_MAIL']:
                 self.role = Role.query.filter_by(permissions=0xff).first()
+                self.confirmed = True
             if self.role is None:
+                print(Role.query.filter_by(default=True).first())
+                print('&'*75)
                 self.role = Role.query.filter_by(default=True).first()
 
     def __repr__(self):
         return f"<User {self.username}>"
+
+    def ping(self):
+        self.last_seen = datetime.utcnow()
+        db.session.add(self)
 
     ############## Confirmation account #############
 
@@ -142,8 +158,10 @@ class User(UserMixin, db.Model):
         db.session.add(self)
         return True
 
+    ######### User permissions ########
+
     def can(self, permissions):
-        return self.role is not None and self.role.permissions & permissions == permissions
+        return self.role is not None and self.role.permissions & permissions == permissions # binary compare
 
     def is_administrator(self):
         return self.can(Permission.ADMINISTER)
