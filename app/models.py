@@ -2,12 +2,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 
 from flask_login import UserMixin, AnonymousUserMixin
-from flask import current_app
+from flask import current_app, request
 
 from . import login_manager
 from . import db
 
 from datetime import datetime
+import hashlib
 
 
 @login_manager.user_loader
@@ -69,6 +70,10 @@ class User(UserMixin, db.Model):
     about_me = db.Column(db.Text())
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
+    avatar_hash = db.Column(db.String(32))
+
+    def hash_avatar(self):
+        return hashlib.md5(self.email.encode("utf-8")).hexdigest()
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
@@ -80,6 +85,9 @@ class User(UserMixin, db.Model):
                 print(Role.query.filter_by(default=True).first())
                 print('&'*75)
                 self.role = Role.query.filter_by(default=True).first()
+        
+        if self.email is not None and self.avatar_hash is None:
+            self.avatar_hash = self.hash_avatar()
 
     def __repr__(self):
         return f"<User {self.username}>"
@@ -87,6 +95,13 @@ class User(UserMixin, db.Model):
     def ping(self):
         self.last_seen = datetime.utcnow()
         db.session.add(self)
+
+    def gravatar(self, size=100, default="identicon", rating="g"):
+        if request.is_secure:
+            url = "https://secure.gravatar.com/avatar"
+        else:
+            url = "http://www.gravatar.com/avatar"
+        return f"{url}/{self.avatar_hash}?s={size}&d={default}&r={rating}"
 
     ############## Confirmation account #############
 
@@ -155,6 +170,7 @@ class User(UserMixin, db.Model):
             return False
         new_email = data.get("new_email")
         self.email = new_email
+        self.avatar_hash = self.hash_avatar() # new email can be changed after db.session.add(), so need to add email argument 
         db.session.add(self)
         return True
 
